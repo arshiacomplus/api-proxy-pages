@@ -31,8 +31,6 @@
 //   }
 // }
 
-// functions/index.js
-
 export async function onRequest(context) {
   const url = new URL(context.request.url);
   const targetUrl = url.searchParams.get('q');
@@ -42,22 +40,32 @@ export async function onRequest(context) {
   }
   
   try {
-    // اضافه کردن User-Agent برای جلوگیری از بلاک شدن توسط برخی سرورها
     const response = await fetch(targetUrl, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
       }
     });
+
+    // 1. بررسی موفق بودن درخواست اولیه
+    if (!response.ok) {
+       return new Response(`Error fetching source: ${response.status}`, { status: response.status });
+    }
+
+    // 2. دریافت نوع محتوا (Content-Type)
+    const contentType = response.headers.get("Content-Type");
+
+    // 3. شرط اصلی: اگر نوع محتوا وجود نداشت یا با "image/" شروع نمیشد، ارور بده
+    if (!contentType || !contentType.startsWith("image/")) {
+        return new Response("Forbidden: The target is NOT an image.", { 
+            status: 415, // کد 415 یعنی فرمت فایل پشتیبانی نمیشود
+            headers: { "Access-Control-Allow-Origin": "*" }
+        });
+    }
     
-    // ساخت هدرهای جدید بر اساس پاسخ اصلی
+    // ادامه مراحل قبلی (تمیزکاری هدرها)
     const newHeaders = new Headers(response.headers);
-    
-    // *** بخش مهم: حذف هدرهای مزاحم ***
-    // این دو هدر باعث خرابی عکس می‌شوند چون کلادفلر خودش مدیریتشان می‌کند
     newHeaders.delete("Content-Encoding");
     newHeaders.delete("Content-Length");
-    
-    // تنظیم CORS
     newHeaders.set("Access-Control-Allow-Origin", "*");
 
     return new Response(response.body, {
