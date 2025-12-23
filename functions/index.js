@@ -30,7 +30,6 @@
 //     });
 //   }
 // }
-
 export async function onRequest(context) {
   const url = new URL(context.request.url);
   const targetUrl = url.searchParams.get('q');
@@ -46,23 +45,19 @@ export async function onRequest(context) {
       }
     });
 
-    // 1. بررسی موفق بودن درخواست اولیه
     if (!response.ok) {
        return new Response(`Error fetching source: ${response.status}`, { status: response.status });
     }
 
-    // 2. دریافت نوع محتوا (Content-Type)
     const contentType = response.headers.get("Content-Type");
 
-    // 3. شرط اصلی: اگر نوع محتوا وجود نداشت یا با "image/" شروع نمیشد، ارور بده
-    if (!contentType || !contentType.startsWith("image/")) {
+    if (!targetUrl.includes("animapi") && (!contentType || !contentType.startsWith("image/"))) {
         return new Response("Forbidden: The target is NOT an image.", { 
-            status: 415, // کد 415 یعنی فرمت فایل پشتیبانی نمیشود
+            status: 415, 
             headers: { "Access-Control-Allow-Origin": "*" }
         });
     }
     
-    // ادامه مراحل قبلی (تمیزکاری هدرها)
     const newHeaders = new Headers(response.headers);
     newHeaders.delete("Content-Encoding");
     newHeaders.delete("Content-Length");
